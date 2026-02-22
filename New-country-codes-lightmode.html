@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Data Explorer 3D</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* LIGHT MODE BACKGROUND */
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #f1f5f9; }
+        #root { width: 100%; height: 100%; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Font for Persian HTML Overlay */
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+        .font-fa { font-family: 'Vazirmatn', sans-serif; }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); } /* Blue-600 */
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+        }
+        .animate-pulse-ring { animation: pulse-ring 2s infinite; }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .animate-fadeIn { animation: fadeIn 0.3s forwards 0.1s; }
+    </style>
+    
+    <!-- Import Map to handle dependencies NATIVELY -->
+    <script type="importmap">
+    {
+        "imports": {
+            "react": "https://esm.sh/react@18.2.0",
+            "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+            "three": "https://esm.sh/three@0.160.0",
+            "@react-three/fiber": "https://esm.sh/@react-three/fiber@8.15.16?external=react,react-dom,three",
+            "@react-three/drei": "https://esm.sh/@react-three/drei@9.99.0?external=react,react-dom,three,@react-three/fiber",
+            "htm": "https://esm.sh/htm@3.1.1"
+        }
+    }
+    </script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="module">
+        import React, { useState, useMemo, useRef, useEffect, createElement } from 'react';
+        import { createRoot } from 'react-dom/client';
+        import * as THREE from 'three';
+        import { Canvas, useFrame, useThree } from '@react-three/fiber';
+        import { OrbitControls, Text, Billboard, Stars } from '@react-three/drei';
+        import htm from 'htm';
+
+        const html = htm.bind(createElement);
+
+        // --- ICONS ---
+        const Icon = ({ path, size = 24, className = "" }) => html`
+            <svg xmlns="http://www.w3.org/2000/svg" width=${size} height=${size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${className}>
+                ${path}
+            </svg>
+        `;
+
+        const Icons = {
+            Info: (props) => html`<${Icon} ...${props} path=${html`<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>`} />`,
+            Settings: (props) => html`<${Icon} ...${props} path=${html`<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.47a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>`} />`,
+            Eye: (props) => html`<${Icon} ...${props} path=${html`<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>`} />`,
+            EyeOff: (props) => html`<${Icon} ...${props} path=${html`<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>`} />`,
+            Layout: (props) => html`<${Icon} ...${props} path=${html`<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="9" y2="21"/>`} />`,
+            Arrows: (props) => html`<${Icon} ...${props} path=${html`<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>`} />`,
+            User: (props) => html`<${Icon} ...${props} path=${html`<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`} />`,
+            Globe: (props) => html`<${Icon} ...${props} path=${html`<circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>`} />`,
+            Lang: (props) => html`<${Icon} ...${props} path=${html`<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>`} />`,
+            X: (props) => html`<${Icon} ...${props} path=${html`<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`} />`,
+            Play: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||20} height=${props.size||20} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
+            Skip: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||14} height=${props.size||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>`,
+            Left: (props) => html`<${Icon} ...${props} path=${html`<path d="m15 18-6-6 6-6"/>`} />`,
+            Right: (props) => html`<${Icon} ...${props} path=${html`<path d="m9 18 6-6-6-6"/>`} />`,
+            Twitter: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||24} height=${props.size||24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>`,
+            Linkedin: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||24} height=${props.size||24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>`,
+            Instagram: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||24} height=${props.size||24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>`,
+            Coffee: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||18} height=${props.size||18} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>`
+        };
+
+        const FA_FONT_URL = "https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/ttf/Vazirmatn-Regular.ttf";
+
+        // --- CONFIG ---
+        const METRICS_CONFIG = {
+            econ: { id: 'econ', label: { en: "Economic Freedom", fa: "آزادی اقتصادی" }, min: 0, max: 100, color: "#2563eb", startLabel: { en: "Planned", fa: "دولتی" }, endLabel: { en: "Free Market", fa: "بازار آزاد" } },
+            cult: { id: 'cult', label: { en: "Cultural Values", fa: "ارزش‌های فرهنگی" }, min: -2.5, max: 2.5, color: "#db2777", startLabel: { en: "Traditional", fa: "سنتی" }, endLabel: { en: "Progressive", fa: "پیشرو" } },
+            auth: { id: 'auth', label: { en: "Democracy Index", fa: "شاخص دموکراسی" }, min: 0, max: 10, color: "#16a34a", startLabel: { en: "Authoritarian", fa: "اقتدارگرا" }, endLabel: { en: "Democratic", fa: "دموکراتیک" } },
+            women: { id: 'women', label: { en: "Women's Rights", fa: "حقوق زنان" }, min: 0, max: 1, color: "#7c3aed", startLabel: { en: "Restricted", fa: "محدود" }, endLabel: { en: "Equal", fa: "برابر" } },
+            edu: { id: 'edu', label: { en: "Education Index", fa: "شاخص آموزش" }, min: 0, max: 1, color: "#d97706", startLabel: { en: "Basic", fa: "پایه" }, endLabel: { en: "Advanced", fa: "پیشرفته" } },
+            stability: { id: 'stability', label: { en: "Political Stability", fa: "ثبات سیاسی" }, min: 0, max: 100, color: "#4f46e5", startLabel: { en: "Unstable", fa: "بی‌ثبات" }, endLabel: { en: "Stable", fa: "باثبات" } },
+            effectiveness: { id: 'effectiveness', label: { en: "Gov. Effectiveness", fa: "کارآمدی دولت" }, min: 0, max: 100, color: "#059669", startLabel: { en: "Ineffective", fa: "ناکارآمد" }, endLabel: { en: "Effective", fa: "کارآمد" } },
+            regulatory: { id: 'regulatory', label: { en: "Regulatory Quality", fa: "کیفیت مقررات" }, min: 0, max: 100, color: "#a78bfa", startLabel: { en: "Poor", fa: "ضعیف" }, endLabel: { en: "High", fa: "بالا" } },
+            rule_law: { id: 'rule_law', label: { en: "Rule of Law", fa: "حاکمیت قانون" }, min: 0, max: 100, color: "#e11d48", startLabel: { en: "Weak", fa: "ضعیف" }, endLabel: { en: "Strong", fa: "قوی" } },
+            corruption: { id: 'corruption', label: { en: "Control of Corruption", fa: "کنترل فساد" }, min: 0, max: 100, color: "#c026d3", startLabel: { en: "High Corruption", fa: "فساد بالا" }, endLabel: { en: "Clean", fa: "پاک" } },
+            health: { id: 'health', label: { en: "Healthcare Access", fa: "دسترسی به بهداشت" }, min: 0, max: 100, color: "#0d9488", startLabel: { en: "Low", fa: "پایین" }, endLabel: { en: "Universal", fa: "همگانی" } },
+            hdi: { id: 'hdi', label: { en: "HDI", fa: "توسعه انسانی" }, min: 0, max: 1, color: "#d97706", startLabel: { en: "Low", fa: "پایین" }, endLabel: { en: "High", fa: "بالا" } }
+        };
+
+        const UI_TEXT = {
+            title: { en: "Global Data Explorer 3D", fa: "کاوشگر داده‌های جهانی سه‌بعدی" },
+            subtitle: { en: "Interactive Multi-Metric Analysis", fa: "تحلیل تعاملی چند متغیره" },
+            by: { en: "By Ali Noorani ↗️", fa: "اثر علی نورانی ↗️" },
+            viewControls: { en: "View Controls", fa: "کنترل‌های نما" },
+            axesVisibility: { en: "Axes Visibility", fa: "نمایش محورها" },
+            countryNames: { en: "Country Names", fa: "نام کشورها" },
+            polLabels: { en: "Political Labels", fa: "برچسب‌های سیاسی" },
+            polFigures: { en: "Political Figures", fa: "چهره‌های سیاسی" },
+            hdi: { en: "Human Development", fa: "توسعه انسانی" },
+            democracy: { en: "Democracy", fa: "دموکراسی" },
+            economic: { en: "Economic", fa: "اقتصادی" },
+            cultural: { en: "Cultural Values", fa: "ارزش‌های فرهنگی" },
+            govAlign: { en: "Gov. Alignment", fa: "همسویی دولت" },
+            valAlign: { en: "Values Alignment", fa: "همسویی ارزش‌ها" },
+            note: { en: "Note:", fa: "نکته:" },
+            selectedMetrics: { en: "Selected Metrics", fa: "شاخص‌های انتخابی" },
+            countryProfile: { en: "Country Profile", fa: "نمایه کشور" },
+            aboutMe: { en: "About Me", fa: "درباره من" },
+            aboutText: { en: "I am a Product Designer and data visualization enthusiast exploring the intersection of politics, economics, and culture through interactive 3D web technologies.", fa: "من طراح محصول و علاقه‌مند به تصویرسازی داده‌ها هستم که تقاطع سیاست، اقتصاد و فرهنگ را از طریق فناوری‌های وب سه‌بعدی تعاملی کاوش می‌کنم." },
+            support: { en: "Support this project:", fa: "حمایت از این پروژه:" },
+            buyCoffee: { en: "Buy Me a Coffee", fa: "یک قهوه مهمانم کن" },
+            dataMapping: { en: "Data Mapping", fa: "نگاشت داده‌ها" },
+            axisX: { en: "X Axis (Left/Right)", fa: "محور افقی X" },
+            axisY: { en: "Y Axis (Up/Down)", fa: "محور عمودی Y" },
+            axisZ: { en: "Z Axis (Depth)", fa: "محور عمق Z" },
+            iso: { en: "ISO", fa: "ایزومتریک" },
+            front: { en: "Front", fa: "روبرو" },
+            right: { en: "Right", fa: "راست" },
+            top: { en: "Top", fa: "بالا" },
+            libertarian: { en: "Libertarian", fa: "آزادی‌خواه" },
+            authLeft: { en: "Authoritarian Left", fa: "چپ اقتدارگرا" },
+            socDem: { en: "Social Democracy", fa: "سوسیال دموکراسی" },
+            trad: { en: "Traditional", fa: "سنتی" },
+            theo: { en: "Theocratic", fa: "تئوکراتیک" },
+            prog: { en: "Progressive", fa: "پیشرو" },
+            fascism: { en: "Fascism", fa: "فاشیسم" },
+            libDem: { en: "Liberal Democracy", fa: "دموکراسی لیبرال" },
+            global: { en: "Global Perspective", fa: "دیدگاه جهانی" },
+            auth_auth: { en: "Authoritarian", fa: "اقتدارگرا" },
+            auth_hybrid: { en: "Hybrid Regime", fa: "رژیم ترکیبی" },
+            auth_flawed: { en: "Flawed Democracy", fa: "دموکراسی معیوب" },
+            auth_full: { en: "Full Democracy", fa: "دموکراسی کامل" },
+            econ_planned: { en: "Planned / State", fa: "برنامه‌ریزی شده / دولتی" },
+            econ_mixed: { en: "Mixed / Regulated", fa: "مختلط / تنظیم شده" },
+            econ_free: { en: "Free Market", fa: "بازار آزاد" },
+            cult_trad: { en: "Religious / Traditional", fa: "مذهبی / سنتی" },
+            cult_mod: { en: "Moderate", fa: "میانه‌رو" },
+            cult_sec: { en: "Secular / Progressive", fa: "سکولار / پیشرو" },
+            none: { en: "None", fa: "هیچکدام" },
+            welcome: { en: "Welcome", fa: "خوش آمدید" },
+            startTour: { en: "Start Guided Tour", fa: "شروع تور راهنما" },
+            explore: { en: "Explore Freely", fa: "کاوش آزادانه" },
+            next: { en: "Next", fa: "بعدی" },
+            prev: { en: "Back", fa: "قبلی" },
+            endTour: { en: "End Tour", fa: "پایان تور" }
+        };
+
+        // --- DATA ---
+        const RAW_DATA = [
+            { name: { en: "United States", fa: "ایالات متحده" }, code: "US", metrics: { econ: 70.2, auth: 7.85, cult: 0.2, women: 0.82, edu: 0.90, stability: 65, effectiveness: 88, regulatory: 91, rule_law: 85, corruption: 83, health: 85, hdi: 0.927 }, hdi: 0.927, region: { en: "West", fa: "غرب" }, desc: { en: "Characterized by strong free-market principles and democratic institutions, though facing polarization.", fa: "با اصول بازار آزاد قوی و نهادهای دموکراتیک مشخص می‌شود، اگرچه با قطبی‌سازی روبروست." } },
+            { name: { en: "Sweden", fa: "سوئد" }, code: "SE", metrics: { econ: 77.5, auth: 9.39, cult: 2.2, women: 0.95, edu: 0.94, stability: 92, effectiveness: 98, regulatory: 96, rule_law: 97, corruption: 95, health: 96, hdi: 0.947 }, hdi: 0.947, region: { en: "Scandinavia", fa: "اسکاندیناوی" }, desc: { en: "A model of 'Nordic Capitalism' combining high economic freedom with a robust welfare state.", fa: "مدلی از «سرمایه‌داری نوردیک» که آزادی اقتصادی بالا را با دولت رفاه قوی ترکیب می‌کند." }, note: { en: "High taxes fund extensive welfare despite free-market rating.", fa: "مالیات‌های بالا با وجود رتبه بازار آزاد، رفاه گسترده را تأمین می‌کند." } },
+            { name: { en: "Norway", fa: "نروژ" }, code: "NO", metrics: { econ: 76.9, auth: 9.81, cult: 1.8, women: 0.94, edu: 0.93, stability: 95, effectiveness: 99, regulatory: 95, rule_law: 98, corruption: 97, health: 98, hdi: 0.961 }, hdi: 0.961, region: { en: "Scandinavia", fa: "اسکاندیناوی" }, desc: { en: "Consistently ranks highest in HDI. Balances significant state ownership with open markets.", fa: "به طور مداوم بالاترین رتبه را در توسعه انسانی دارد. مالکیت دولتی را با بازارهای آزاد متعادل می‌کند." }, note: { en: "High taxes fund extensive welfare despite free-market rating.", fa: "مالیات‌های بالا با وجود رتبه بازار آزاد، رفاه گسترده را تأمین می‌کند." } },
+            { name: { en: "Denmark", fa: "دانمارک" }, code: "DK", metrics: { econ: 77.8, auth: 9.28, cult: 1.9, women: 0.94, edu: 0.92, stability: 90, effectiveness: 97, regulatory: 98, rule_law: 96, corruption: 99, health: 95, hdi: 0.948 }, hdi: 0.948, region: { en: "Scandinavia", fa: "اسکاندیناوی" }, desc: { en: "High economic freedom scores often surprise those who equate it with socialism.", fa: "نمرات بالای آزادی اقتصادی آن اغلب کسانی را که این کشور را سوسیالیست می‌پندارند، شگفت‌زده می‌کند." }, note: { en: "High taxes fund extensive welfare despite free-market rating.", fa: "مالیات‌های بالا با وجود رتبه بازار آزاد، رفاه گسترده را تأمین می‌کند." } },
+            { name: { en: "China", fa: "چین" }, code: "CN", metrics: { econ: 48.0, auth: 2.12, cult: 0.8, women: 0.65, edu: 0.65, stability: 60, effectiveness: 75, regulatory: 45, rule_law: 45, corruption: 40, health: 70, hdi: 0.768 }, hdi: 0.768, region: { en: "Asia", fa: "آسیا" }, desc: { en: "State Capitalism model. While economic freedom has grown, political authority remains centralized.", fa: "مدل سرمایه‌داری دولتی. در حالی که آزادی اقتصادی رشد کرده، اقتدار سیاسی متمرکز باقی مانده است." } },
+            { name: { en: "Japan", fa: "ژاپن" }, code: "JP", metrics: { econ: 69.3, auth: 8.33, cult: 1.5, women: 0.75, edu: 0.89, stability: 88, effectiveness: 90, regulatory: 88, rule_law: 90, corruption: 85, health: 95, hdi: 0.925 }, hdi: 0.925, region: { en: "Asia", fa: "آسیا" }, desc: { en: "A stable democracy with a highly developed market economy.", fa: "یک دموکراسی پایدار با اقتصاد بازار پیشرفته." } },
+            { name: { en: "Saudi Arabia", fa: "عربستان سعودی" }, code: "SA", metrics: { econ: 60.0, auth: 2.08, cult: -1.6, women: 0.30, edu: 0.85, stability: 55, effectiveness: 65, regulatory: 60, rule_law: 55, corruption: 55, health: 75, hdi: 0.875 }, hdi: 0.875, region: { en: "Middle East", fa: "خاورمیانه" }, desc: { en: "Absolute monarchy with an economy in transition (Vision 2030).", fa: "سلطنت مطلقه با اقتصادی در حال گذار (چشم‌انداز ۲۰۳۰)." } },
+            { name: { en: "Afghanistan", fa: "افغانستان" }, code: "AF", metrics: { econ: 20.0, auth: 0.3, cult: -2.4, women: 0.05, edu: 0.30, stability: 1, effectiveness: 5, regulatory: 5, rule_law: 2, corruption: 5, health: 15, hdi: 0.478 }, hdi: 0.478, region: { en: "Asia", fa: "آسیا" }, desc: { en: "Extreme authoritarian theocracy. Economy collapsed after political changes.", fa: "تئوکراسی اقتدارگرای افراطی. اقتصاد پس از تغییرات سیاسی فروپاشیده است." } },
+            { name: { en: "Venezuela", fa: "ونزوئلا" }, code: "VE", metrics: { econ: 24.7, auth: 2.23, cult: -0.4, women: 0.70, edu: 0.68, stability: 10, effectiveness: 10, regulatory: 5, rule_law: 5, corruption: 5, health: 40, hdi: 0.675 }, hdi: 0.675, region: { en: "South America", fa: "آمریکای جنوبی" }, desc: { en: "Authoritarian regime with extreme state control over the economy, leading to hyperinflation.", fa: "رژیم اقتدارگرا با کنترل شدید و ناکارآمد دولت بر اقتصاد که منجر به بحران و ابرتورم شده است." } },
+            { name: { en: "Singapore", fa: "سنگاپور" }, code: "SG", metrics: { econ: 83.9, auth: 6.03, cult: -0.5, women: 0.88, edu: 0.91, stability: 98, effectiveness: 100, regulatory: 100, rule_law: 95, corruption: 95, health: 90, hdi: 0.939 }, hdi: 0.939, region: { en: "Asia", fa: "آسیا" }, desc: { en: "Economic powerhouse with extremely free markets but tight social and political control.", fa: "قدرت اقتصادی با بازارهای بسیار آزاد اما کنترل شدید اجتماعی و سیاسی." } },
+            { name: { en: "UAE", fa: "امارات" }, code: "AE", metrics: { econ: 70.9, auth: 2.90, cult: -1.0, women: 0.50, edu: 0.88, stability: 70, effectiveness: 85, regulatory: 75, rule_law: 65, corruption: 70, health: 80, hdi: 0.911 }, hdi: 0.911, region: { en: "Middle East", fa: "خاورمیانه" }, desc: { en: "High economic freedom and global integration paired with authoritarian governance.", fa: "ترکیبی از آزادی اقتصادی بالا و ادغام جهانی با حکمرانی سیاسی اقتدارگرا." } },
+            { name: { en: "Turkey", fa: "ترکیه" }, code: "TR", metrics: { econ: 56.0, auth: 4.35, cult: -0.6, women: 0.65, edu: 0.78, stability: 25, effectiveness: 50, regulatory: 55, rule_law: 40, corruption: 40, health: 70, hdi: 0.838 }, hdi: 0.838, region: { en: "Middle East", fa: "خاورمیانه" }, desc: { en: "Bridging East and West. Recent years have seen a decline in democratic institutions.", fa: "پلی میان شرق و غرب. سال‌های اخیر شاهد افول نهادهای دموکراتیک بوده است." } },
+            { name: { en: "United Kingdom", fa: "انگلستان" }, code: "UK", metrics: { econ: 69.9, auth: 8.28, cult: 0.6, women: 0.88, edu: 0.92, stability: 70, effectiveness: 85, regulatory: 92, rule_law: 90, corruption: 85, health: 90, hdi: 0.929 }, hdi: 0.929, region: { en: "Europe", fa: "اروپا" }, desc: { en: "A classical liberal democracy. Strong protections for property rights and individual expression.", fa: "یک دموکراسی لیبرال کلاسیک با محافظت قوی از حقوق مالکیت و آزادی بیان." } },
+            { name: { en: "Germany", fa: "آلمان" }, code: "DE", metrics: { econ: 73.7, auth: 8.80, cult: 1.0, women: 0.90, edu: 0.94, stability: 85, effectiveness: 92, regulatory: 94, rule_law: 92, corruption: 88, health: 95, hdi: 0.942 }, hdi: 0.942, region: { en: "Europe", fa: "اروپا" }, desc: { en: "Social Market Economy. Strong federal democracy with an emphasis on consensus.", fa: "اقتصاد بازار اجتماعی. دموکراسی فدرال قدرتمند با تأکید بر اجماع سیاسی." } },
+            { name: { en: "France", fa: "فرانسه" }, code: "FR", metrics: { econ: 63.6, auth: 8.07, cult: 0.8, women: 0.89, edu: 0.90, stability: 75, effectiveness: 88, regulatory: 85, rule_law: 88, corruption: 80, health: 95, hdi: 0.903 }, hdi: 0.903, region: { en: "Europe", fa: "اروپا" }, desc: { en: "Statist economic tradition with high public spending. fiercely secular (Laïcité).", fa: "سنت اقتصادی دولتی با هزینه‌های عمومی بالا. کشوری شدیداً سکولار (لائیسیته)." } },
+            { name: { en: "Iran", fa: "ایران" }, code: "IR", metrics: { econ: 42.2, auth: 1.96, cult: -1.8, women: 0.35, edu: 0.76, stability: 20, effectiveness: 35, regulatory: 20, rule_law: 25, corruption: 20, health: 70, hdi: 0.774 }, hdi: 0.774, region: { en: "Middle East", fa: "خاورمیانه" }, desc: { en: "Theocratic republic. Economy is heavily state-controlled and sanctioned.", fa: "جمهوری تئوکراتیک. اقتصاد به شدت تحت کنترل دولت و تحریم است." } },
+            { name: { en: "Russia", fa: "روسیه" }, code: "RU", metrics: { econ: 50.6, auth: 2.22, cult: 0.1, women: 0.72, edu: 0.82, stability: 25, effectiveness: 45, regulatory: 35, rule_law: 25, corruption: 25, health: 65, hdi: 0.822 }, hdi: 0.822, region: { en: "Eurasia", fa: "اوراسیا" }, desc: { en: "Authoritarian leadership with a mixed economy dominated by state oligarchies.", fa: "رهبری اقتدارگرا با اقتصادی مختلط که تحت سلطه الیگارشی‌های وابسته به دولت است." } },
+            { name: { en: "India", fa: "هند" }, code: "IN", metrics: { econ: 52.9, auth: 7.04, cult: -1.2, women: 0.60, edu: 0.63, stability: 40, effectiveness: 55, regulatory: 50, rule_law: 50, corruption: 40, health: 50, hdi: 0.633 }, hdi: 0.633, region: { en: "Asia", fa: "آسیا" }, desc: { en: "World's largest democracy. Developing mixed economy with high growth potential.", fa: "بزرگترین دموکراسی جهان با جمعیتی عظیم. اقتصاد مختلط در حال توسعه." } },
+            { name: { en: "Vietnam", fa: "ویتنام" }, code: "VN", metrics: { econ: 61.8, auth: 2.73, cult: -0.8, women: 0.72, edu: 0.64, stability: 65, effectiveness: 60, regulatory: 50, rule_law: 45, corruption: 40, health: 65, hdi: 0.703 }, hdi: 0.703, region: { en: "Asia", fa: "آسیا" }, desc: { en: "Socialist-oriented market economy. One-party authoritarian rule.", fa: "اقتصاد بازار با جهت‌گیری سوسیالیستی. حکومت اقتدارگرای تک‌حزبی." } },
+            { name: { en: "Switzerland", fa: "سوئیس" }, code: "CH", metrics: { econ: 83.8, auth: 9.14, cult: 0.8, women: 0.92, edu: 0.96, stability: 98, effectiveness: 99, regulatory: 98, rule_law: 99, corruption: 98, health: 99, hdi: 0.962 }, hdi: 0.962, region: { en: "Europe", fa: "اروپا" }, desc: { en: "Highly decentralized direct democracy with very high economic freedom.", fa: "دموکراسی مستقیم بسیار غیرمتمرکز با آزادی اقتصادی بسیار بالا." } },
+            { name: { en: "North Korea", fa: "کره شمالی" }, code: "KP", metrics: { econ: 2.9, auth: 1.08, cult: -2.0, women: 0.40, edu: 0.50, stability: 30, effectiveness: 10, regulatory: 2, rule_law: 5, corruption: 5, health: 40, hdi: 0.500 }, hdi: 0.500, region: { en: "Asia", fa: "آسیا" }, desc: { en: "Totalitarian dictatorship with a command economy.", fa: "دیکتاتوری توتالیتر با اقتصاد دستوری کامل." } }
+        ];
+
+        const FIGURES_DATA = [
+            { name: { en: "Mahatma Gandhi", fa: "مهاتما گاندی" }, code: "MG", metrics: { econ: 45, auth: 9.0, cult: 0.5 }, hdi: 0.7, type: "figure", region: null, desc: { en: "Advocated for village-based socialism and swaraj.", fa: "طرفدار سوسیالیسم روستایی و خودگردانی." } },
+            { name: { en: "Margaret Thatcher", fa: "مارگارت تاچر" }, code: "MT", metrics: { econ: 88, auth: 7.5, cult: -0.5 }, hdi: 0.9, type: "figure", region: null, desc: { en: "The 'Iron Lady'. Championed neoliberal free markets.", fa: "«بانوی آهنین». مدافع بازارهای آزاد نئولیبرال." } },
+            { name: { en: "Joseph Stalin", fa: "ژوزف استالین" }, code: "JS", metrics: { econ: 5, auth: 0.5, cult: -1.5 }, hdi: 0.5, type: "figure", region: null, desc: { en: "Totalitarian leader who implemented a strict command economy.", fa: "رهبر توتالیتر که اقتصاد دستوری سختگیرانه‌ای را اجرا کرد." } },
+            { name: { en: "Adolf Hitler", fa: "آدولف هیتلر" }, code: "AH", metrics: { econ: 40, auth: 0.1, cult: -2.5 }, hdi: 0.5, type: "figure", region: null, desc: { en: "Fascist dictator. Economy was state-directed capitalism.", fa: "دیکتاتور فاشیست. اقتصاد سرمایه‌داری هدایت‌شده توسط دولت." } },
+            { name: { en: "Bernie Sanders", fa: "برنی سندرز" }, code: "BS", metrics: { econ: 40, auth: 8.5, cult: 2.0 }, hdi: 0.9, type: "figure", region: null, desc: { en: "Democratic Socialist.", fa: "سوسیالیست دموکراتیک." } },
+            { name: { en: "Donald Trump", fa: "دونالد ترامپ" }, code: "DT", metrics: { econ: 75, auth: 5.5, cult: -1.5 }, hdi: 0.9, type: "figure", region: null, desc: { en: "Right-wing populist.", fa: "پوپولیست راست‌گرا." } },
+            { name: { en: "Augusto Pinochet", fa: "آگوستو پینوشه" }, code: "AP", metrics: { econ: 85, auth: 1.5, cult: -1.5 }, hdi: 0.7, type: "figure", region: null, desc: { en: "Military dictator who implemented radical free-market reforms.", fa: "دیکتاتور نظامی که اصلاحات رادیکال بازار آزاد را اجرا کرد." } },
+            { name: { en: "Nelson Mandela", fa: "نلسون ماندلا" }, code: "NM", metrics: { econ: 50, auth: 9.5, cult: 1.0 }, hdi: 0.7, type: "figure", region: null, desc: { en: "Symbol of democracy and reconciliation.", fa: "نماد دموکراسی و آشتی." } },
+            { name: { en: "Reza Shah Pahlavi", fa: "رضا شاه پهلوی" }, code: "RS", metrics: { econ: 45, auth: 1.5, cult: 1.0 }, hdi: 0.5, type: "figure", region: null, desc: { en: "Authoritarian Modernizer.", fa: "نوساز اقتدارگرا." } },
+            { name: { en: "Ruhollah Khomeini", fa: "روح‌الله خمینی" }, code: "RK", metrics: { econ: 30, auth: 1.0, cult: -2.5 }, hdi: 0.6, type: "figure", region: null, desc: { en: "Leader of the Islamic Revolution.", fa: "رهبر انقلاب اسلامی." } },
+            { name: { en: "Ali Khamenei", fa: "علی خامنه‌ای" }, code: "AK", metrics: { econ: 35, auth: 1.0, cult: -2.5 }, hdi: 0.77, type: "figure", region: null, desc: { en: "Current Supreme Leader of Iran.", fa: "رهبر کنونی ایران." } },
+            { name: { en: "Mohammad Mosaddegh", fa: "محمد مصدق" }, code: "MM", metrics: { econ: 30, auth: 6.0, cult: 0.5 }, hdi: 0.5, type: "figure", region: null, desc: { en: "Democratically elected Prime Minister known for nationalizing oil.", fa: "نخست‌وزیر منتخب دموکراتیک که صنعت نفت را ملی کرد." } },
+            { name: { en: "Barack Obama", fa: "باراک اوباما" }, code: "BO", metrics: { econ: 68, auth: 8.5, cult: 1.8 }, hdi: 0.92, type: "figure", region: null, desc: { en: "44th US President. Centrist/Liberal.", fa: "چهل و چهارمین رئیس‌جمهور آمریکا." } },
+            { name: { en: "Lee Kuan Yew", fa: "لی کوآن یو" }, code: "LKY", metrics: { econ: 85, auth: 4.0, cult: -0.5 }, hdi: 0.9, type: "figure", region: null, desc: { en: "Founding father of modern Singapore.", fa: "پدر بنیانگذار سنگاپور مدرن." } },
+            { name: { en: "F.D. Roosevelt", fa: "روزولت (FDR)" }, code: "FDR", metrics: { econ: 55, auth: 8.0, cult: 0.5 }, hdi: 0.8, type: "figure", region: null, desc: { en: "Architect of the New Deal.", fa: "معمار نیو دیل." } }
+        ];
+
+        const TOUR_STEPS = [
+            {
+                title: { en: "The 3D Political Space", fa: "فضای سیاسی سه‌بعدی" },
+                text: { 
+                    en: "Welcome! Unlike traditional 2D charts, this map visualizes nations across multiple dimensions. You can explore relationships between Economy, Culture, Democracy, and many other indicators.", 
+                    fa: "خوش آمدید! برخلاف نمودارهای سنتی دوبعدی، این نقشه کشورها را در ابعاد مختلف تجسم می‌کند. شما می‌توانید روابط بین اقتصاد، فرهنگ، دموکراسی و بسیاری از شاخص‌های دیگر را کاوش کنید." 
+                },
+                view: 'default',
+                config: { axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: true, showFigures: false },
+                highlight: null
+            },
+            {
+                title: { en: "Dimension 1: Economy", fa: "بعد اول: اقتصاد" },
+                text: { 
+                    en: "The Blue Axis (X) represents Economic Freedom. Right is Free Market, Left is State Control. Notice how the US and Singapore are far right, while North Korea is far left.", 
+                    fa: "محور آبی (X) نشان‌دهنده آزادی اقتصادی است. راست بازار آزاد و چپ کنترل دولتی است. توجه کنید که آمریکا و سنگاپور در سمت راست و کره شمالی در سمت چپ قرار دارند." 
+                },
+                view: 'top', 
+                config: { axes: { x: true, y: false, z: false }, showLabels: true, showIdeologies: false, showFigures: false }, 
+                highlight: "United States"
+            },
+            {
+                title: { en: "Dimension 2: Culture", fa: "بعد دوم: فرهنگ" },
+                text: { 
+                    en: "The Pink Axis (Y) maps Cultural Values. Up is Secular/Progressive, Down is Traditional/Religious. Scandinavian countries cluster at the top, while Middle Eastern nations are generally lower.", 
+                    fa: "محور صورتی (Y) ارزش‌های فرهنگی را ترسیم می‌کند. بالا سکولار/پیشرو و پایین سنتی/مذهبی است. کشورهای اسکاندیناوی در بالا و کشورهای خاورمیانه عموماً در پایین قرار دارند." 
+                },
+                view: 'right', 
+                config: { axes: { x: false, y: true, z: false }, showLabels: true, showIdeologies: false, showFigures: false },
+                highlight: "Sweden"
+            },
+            {
+                title: { en: "Dimension 3: Authority", fa: "بعد سوم: اقتدار" },
+                text: { 
+                    en: "The Green Axis (Z) is Governance. Front is Democratic/Libertarian, Back is Authoritarian. This depth allows us to distinguish between Free Market Democracies and Authoritarian Capitalists.", 
+                    fa: "محور سبز (Z) حکمرانی است. جلو دموکراتیک/آزادی‌خواه و عقب اقتدارگرا است. این عمق به ما اجازه می‌دهد بین دموکراسی‌های بازار آزاد و سرمایه‌داری اقتدارگرا تمایز قائل شویم." 
+                },
+                view: 'default', 
+                config: { axes: { x: false, y: false, z: true }, showLabels: true, showIdeologies: false, showFigures: false },
+                highlight: "North Korea"
+            },
+            {
+                title: { en: "The Nordic Model", fa: "مدل نوردیک" },
+                text: { 
+                    en: "Bringing it all together: Nordic countries are often misunderstood. They are high on Economic Freedom (Right) and Democracy (Front), but fund welfare through taxes. They are distinct from the Authoritarian Left.", 
+                    fa: "ترکیب همه ابعاد: کشورهای نوردیک اغلب اشتباه درک می‌شوند. آن‌ها در آزادی اقتصادی (راست) و دموکراسی (جلو) بالا هستند، اما رفاه را از طریق مالیات تأمین می‌کنند. آن‌ها از چپ اقتدارگرا متمایز هستند." 
+                },
+                view: 'default',
+                config: { axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: true, showFigures: false },
+                highlight: "Norway"
+            },
+            {
+                title: { en: "Historical Context", fa: "زمینه تاریخی" },
+                text: { 
+                    en: "We can also map historical figures. Toggle 'Political Figures' to compare leaders like Gandhi (Democratic/Traditional) vs Stalin (Authoritarian/Statist).", 
+                    fa: "ما همچنین می‌توانیم چهره‌های تاریخی را ترسیم کنیم. «چهره‌های سیاسی» را روشن کنید تا رهبرانی مانند گاندی (دموکراتیک/سنتی) را با استالین (اقتدارگرا/دولتی) مقایسه کنید." 
+                },
+                view: 'default',
+                config: { axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: false, showFigures: true },
+                highlight: "Mahatma Gandhi"
+            }
+        ];
+
+        // --- HELPER FUNCTIONS ---
+        const getAuthLabel = (val, lang) => {
+            if (val === undefined || val === null) return "";
+            if (val < 4) return UI_TEXT.auth_auth[lang];
+            if (val < 6) return UI_TEXT.auth_hybrid[lang];
+            if (val < 8) return UI_TEXT.auth_flawed[lang];
+            return UI_TEXT.auth_full[lang];
+        };
+
+        const getEconLabel = (val, lang) => {
+            if (val === undefined || val === null) return "";
+            if (val < 50) return UI_TEXT.econ_planned[lang];
+            if (val < 65) return UI_TEXT.econ_mixed[lang];
+            return UI_TEXT.econ_free[lang];
+        };
+
+        const getCultLabel = (val, lang) => {
+            if (val === undefined || val === null) return "";
+            if (val < -1) return UI_TEXT.cult_trad[lang];
+            if (val < 0.5) return UI_TEXT.cult_mod[lang];
+            return UI_TEXT.cult_sec[lang];
+        };
+
+        // --- COMPONENTS ---
+        const WelcomeModal = ({ startTour, close, lang }) => html`
+            <div className="absolute inset-0 flex items-center justify-center bg-white/60 backdrop-blur-md z-50 p-4 font-fa" dir=${lang === 'fa' ? 'rtl' : 'ltr'}>
+                <div className="bg-white border border-slate-200 p-8 rounded-2xl shadow-2xl max-w-lg text-center">
+                    <h1 className="text-3xl font-bold text-slate-800 mb-4 bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent">${UI_TEXT.title[lang]}</h1>
+                    <p className="text-slate-600 mb-8 leading-relaxed">${UI_TEXT.aboutText[lang]}</p>
+                    <div className="flex gap-4 justify-center">
+                        <button onClick=${startTour} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-xl font-bold transition-all hover:scale-105 active:scale-95 shadow-lg shadow-blue-500/20 animate-pulse-ring">
+                            <${Icons.Play} size=${20} fill="currentColor" /> ${UI_TEXT.startTour[lang]}
+                        </button>
+                        <button onClick=${close} className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                            ${UI_TEXT.explore[lang]}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const TourControls = ({ step, next, prev, skip, lang }) => html`
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 bg-white/95 border border-slate-200 p-6 rounded-2xl shadow-2xl z-50 w-full max-w-lg font-fa text-center" dir=${lang === 'fa' ? 'rtl' : 'ltr'}>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-slate-800">${TOUR_STEPS[step].title[lang]}</h3>
+                    <span className="text-xs text-slate-500 font-mono">${step + 1} / ${TOUR_STEPS.length}</span>
+                </div>
+                <p className="text-slate-600 mb-6 leading-relaxed text-sm">${TOUR_STEPS[step].text[lang]}</p>
+                <div className="flex justify-between items-center">
+                    <button onClick=${skip} className="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1"><${Icons.Skip} size=${14}/> ${UI_TEXT.endTour[lang]}</button>
+                    <div className="flex gap-2">
+                        <button onClick=${prev} disabled=${step === 0} className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 text-slate-600"><${Icons.Left} size=${20} className=${lang === 'fa' ? 'rotate-180' : ''}/></button>
+                        <button onClick=${next} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold transition-transform active:scale-95">
+                            ${step === TOUR_STEPS.length - 1 ? UI_TEXT.explore[lang] : UI_TEXT.next[lang]} 
+                            <${Icons.Right} size=${16} className=${lang === 'fa' ? 'rotate-180' : ''}/>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const EarthGlobe = ({ lang }) => {
+            const earthRef = useRef();
+            useFrame((state, delta) => { if (earthRef.current) earthRef.current.rotation.y += delta * 0.1; });
+            return html`
+                <group ref=${earthRef}>
+                    <mesh><sphereGeometry args=${[5, 64, 64]} /><meshStandardMaterial color="#3b82f6" roughness=${0.5} metalness=${0.1} /></mesh>
+                    <mesh scale=${[1.02, 1.02, 1.02]}><sphereGeometry args=${[5, 32, 32]} /><meshBasicMaterial color="#ffffff" wireframe transparent opacity=${0.3} /></mesh>
+                    <${Billboard} position=${[0, 6.5, 0]}><${Text} fontSize=${0.5} color="#1e40af" outlineWidth=${0.02} outlineColor="#fff" font=${lang === 'fa' ? FA_FONT_URL : undefined}>${UI_TEXT.global[lang]}</${Text}></${Billboard}>
+                </group>
+            `;
+        };
+
+        const CameraController = ({ view }) => {
+            const { camera } = useThree();
+            const targetRef = useRef();
+            const isAnimating = useRef(false);
+            useEffect(() => {
+                let targetPos = [20, 15, 20];
+                if (view.mode === 'front') targetPos = [0, 0, 35];
+                if (view.mode === 'right') targetPos = [35, 0, 0];
+                if (view.mode === 'top') targetPos = [0, 35, 0];
+                targetRef.current = new THREE.Vector3(...targetPos);
+                isAnimating.current = true;
+            }, [view]);
+            useFrame(() => {
+                if (!isAnimating.current || !targetRef.current) return;
+                camera.position.lerp(targetRef.current, 0.1);
+                camera.lookAt(0, 0, 0);
+                if (camera.position.distanceTo(targetRef.current) < 0.1) { isAnimating.current = false; camera.position.copy(targetRef.current); camera.lookAt(0, 0, 0); }
+            });
+            return null;
+        };
+
+        const AxisArrow = ({ position, direction, color }) => html`
+            <mesh position=${position} rotation=${direction}>
+                <coneGeometry args=${[0.2, 0.5, 16]} />
+                <meshStandardMaterial color=${color} transparent opacity=${0.8} />
+            </mesh>
+        `;
+
+        const Axis = ({ position, size, startLabel, endLabel, color, visible, lang }) => {
+            if (!visible) return null;
+            const halfSize = [size[0]/2, size[1]/2, size[2]/2];
+            const offset = 2.5;
+            const startPos = [size[0]>1?position[0]-halfSize[0]-offset:position[0], size[1]>1?position[1]-halfSize[1]-offset:position[1], size[2]>1?position[2]-halfSize[2]-offset:position[2]];
+            const endPos = [size[0]>1?position[0]+halfSize[0]+offset:position[0], size[1]>1?position[1]+halfSize[1]+offset:position[1], size[2]>1?position[2]+halfSize[2]+offset:position[2]];
+            const sAX = size[0]>1?"right":"center", sAY = size[1]>1?"top":"middle";
+            const eAX = size[0]>1?"left":"center", eAY = size[1]>1?"bottom":"middle";
+            const arrowStartPos = [size[0]>1?position[0]-halfSize[0]:position[0], size[1]>1?position[1]-halfSize[1]:position[1], size[2]>1?position[2]-halfSize[2]:position[2]];
+            const arrowEndPos = [size[0]>1?position[0]+halfSize[0]:position[0], size[1]>1?position[1]+halfSize[1]:position[1], size[2]>1?position[2]+halfSize[2]:position[2]];
+            
+            let rotStart = [0,0,0], rotEnd = [0,0,0];
+            if(size[0]>1) { rotStart=[0,0,Math.PI/2]; rotEnd=[0,0,-Math.PI/2]; }
+            else if(size[1]>1) { rotStart=[0,0,Math.PI]; rotEnd=[0,0,0]; }
+            else { rotStart=[-Math.PI/2,0,0]; rotEnd=[Math.PI/2,0,0]; }
+
+            return html`
+                <group>
+                    <mesh position=${position}><boxGeometry args=${size} /><meshStandardMaterial color=${color} transparent opacity=${0.6} /></mesh>
+                    <${AxisArrow} position=${arrowEndPos} direction=${rotEnd} color=${color} />
+                    <${AxisArrow} position=${arrowStartPos} direction=${rotStart} color=${color} />
+                    <${Billboard} position=${startPos}><${Text} fontSize=${0.8} color=${color} anchorX=${sAX} anchorY=${sAY} outlineWidth=${0.04} outlineColor="#fff" fontWeight="bold" font=${lang === 'fa' ? FA_FONT_URL : undefined}>${startLabel}</${Text}></${Billboard}>
+                    <${Billboard} position=${endPos}><${Text} fontSize=${0.8} color=${color} anchorX=${eAX} anchorY=${eAY} outlineWidth=${0.04} outlineColor="#fff" fontWeight="bold" font=${lang === 'fa' ? FA_FONT_URL : undefined}>${endLabel}</${Text}></${Billboard}>
+                </group>
+            `;
+        };
+
+        const GridPlane = ({ position, rotation, size, color, visible, gridColor }) => {
+            if (!visible) return null;
+            return html`
+                <group position=${position} rotation=${rotation}>
+                    <gridHelper args=${[size, 10, gridColor, gridColor]} />
+                    <mesh rotation=${[-Math.PI/2, 0, 0]} position=${[0, -0.05, 0]}><planeGeometry args=${[size, size]} /><meshBasicMaterial color=${color} transparent opacity=${0.1} side=${THREE.DoubleSide} /></mesh>
+                </group>
+            `;
+        };
+
+        const IdeologyLabelItem = ({ label, config, lang }) => {
+            const groupRef = useRef();
+            useFrame(() => {
+                if (groupRef.current) {
+                    const targetX = config.axes.x ? label.pos[0] : -10;
+                    const targetY = config.axes.y ? label.pos[1] : -10;
+                    const targetZ = config.axes.z ? label.pos[2] : -10;
+                    const targetVec = new THREE.Vector3(targetX, targetY, targetZ);
+                    groupRef.current.position.lerp(targetVec, 0.1);
+                }
+            });
+            return html`
+                <${Billboard} ref=${groupRef} position=${label.pos}>
+                    <${Text} 
+                        fontSize=${0.7} 
+                        color=${label.color}
+                        outlineWidth=${0.04} 
+                        outlineColor="#ffffff"
+                        fillOpacity=${0.9}
+                        fontWeight="bold"
+                        font=${lang === 'fa' ? FA_FONT_URL : undefined}
+                    >
+                        ${label.text}
+                    </${Text}>
+                </${Billboard}>
+            `;
+        };
+
+        const IdeologyLabels = ({ visible, config, lang }) => {
+            if (!visible) return null;
+            const items = [
+                { text: UI_TEXT.libertarian[lang], pos: [8, 8, 8], color: "#b45309", req: ['z'] }, 
+                { text: UI_TEXT.authLeft[lang], pos: [-8, -5, -8], color: "#b91c1c", req: ['z', 'x'] }, 
+                { text: UI_TEXT.socDem[lang], pos: [-5, 5, 8], color: "#15803d", req: ['x', 'z'] }, 
+                { text: UI_TEXT.trad[lang], pos: [0, -9, 0], color: "#be185d", req: ['y'] }, 
+                { text: UI_TEXT.theo[lang], pos: [0, -9, -8], color: "#7e22ce", req: ['y', 'z'] }, 
+                { text: UI_TEXT.prog[lang], pos: [0, 9, 0], color: "#0f766e", req: ['y'] }, 
+                { text: UI_TEXT.fascism[lang], pos: [0, 8, -9], color: "#7f1d1d", req: ['z'] }, 
+                { text: UI_TEXT.libDem[lang], pos: [5, 0, 8], color: "#1d4ed8", req: ['z'] } 
+            ];
+            return html`
+                <group>
+                    ${items.map((l, i) => {
+                        if (l.req && !l.req.every(a => config.axes[a])) return null;
+                        return html`<${IdeologyLabelItem} key=${i} label=${l} config=${config} lang=${lang} />`;
+                    })}
+                </group>
+            `;
+        };
+
+        const CountrySphere = ({ country, hovered, setHovered, showLabels, mapping, activeAxesCount, lang, config, staggerIndex }) => {
+            const groupRef = useRef();
+            const meshRef = useRef();
+            const isHovered = hovered === country.name[lang];
+            const isFigure = country.type === "figure";
+            const shouldShowLabel = showLabels || isFigure;
+
+            useFrame((state) => {
+                if (groupRef.current) {
+                    let tv;
+                    if (activeAxesCount === 0) {
+                        const phi = Math.acos(-1 + (2 * country.rankGlobal) / 28);
+                        const theta = Math.sqrt(28 * Math.PI) * phi;
+                        tv = new THREE.Vector3(5.5 * Math.cos(theta) * Math.sin(phi), 5.5 * Math.sin(theta) * Math.sin(phi), 5.5 * Math.cos(phi));
+                    } else {
+                        const xVal = (config.axes.x && mapping.x !== 'none') ? (country.pos[mapping.x] || 0) : 0;
+                        const yVal = (config.axes.y && mapping.y !== 'none') ? (country.pos[mapping.y] || 0) : 0;
+                        const zVal = (config.axes.z && mapping.z !== 'none') ? (country.pos[mapping.z] || 0) : 0;
+                        tv = new THREE.Vector3(xVal, yVal, zVal);
+                    }
+                    groupRef.current.position.lerp(tv, 0.1);
+                }
+                if (meshRef.current) {
+                    let sc = shouldShowLabel ? (isFigure ? 0.5 : 0.6) : (isFigure ? 0.25 : 0.3);
+                    if (isHovered) sc = isFigure ? 0.8 : 1.0;
+                    meshRef.current.scale.lerp(new THREE.Vector3(sc, sc, sc), 0.1);
+                }
+            });
+
+            let lo = [0, 0.8, 0];
+            let showLine = false;
+            
+            if (activeAxesCount === 1) {
+                showLine = true;
+                const idx = staggerIndex !== undefined ? staggerIndex : country.index; 
+                const direction = idx % 2 === 0 ? 1 : -1;
+                const variance = 2.0 + (idx % 3) * 2.0; 
+                const stag = direction * variance;
+                lo = [0, stag, 0]; 
+            } else if (activeAxesCount === 0) {
+                lo = [0, 0.6, 0];
+            }
+
+            return html`
+                <group ref=${groupRef}>
+                    <mesh ref=${meshRef} onPointerOver=${(e) => { e.stopPropagation(); setHovered(country.name[lang]); }} onPointerOut=${(e) => { e.stopPropagation(); setHovered(null); }}>
+                        ${isFigure ? html`<boxGeometry args=${[0.6, 0.6, 0.6]} />` : html`<sphereGeometry args=${[0.3, 32, 32]} />`}
+                        <meshPhysicalMaterial 
+                            color=${isFigure ? "#f59e0b" : country.color} 
+                            emissive=${isFigure ? "#f59e0b" : country.color} 
+                            emissiveIntensity=${isHovered ? 1.0 : 0.2}
+                            roughness=${0.4} 
+                            metalness=${isFigure ? 0.8 : 0.1} 
+                            clearcoat=${0.5}
+                        />
+                    </mesh>
+                    ${shouldShowLabel ? html`
+                        <group>
+                            ${showLine ? html`<mesh position=${[lo[0]/2, lo[1]/2, lo[2]/2]}> 
+                                <boxGeometry args=${[0.02, Math.abs(lo[1]), 0.02]} />
+                                <meshBasicMaterial color="#94a3b8" transparent opacity=${0.5} />
+                            </mesh>` : null}
+                            
+                            <${Billboard} position=${lo}> 
+                                <${Text} 
+                                    fontSize=${0.5} 
+                                    color=${isFigure ? "#d97706" : "#0f172a"} 
+                                    outlineWidth=${0.04} 
+                                    outlineColor="white"
+                                    fillOpacity=${isHovered ? 1 : 0.9}
+                                    onPointerOver=${(e) => { e.stopPropagation(); setHovered(country.name[lang]); }}
+                                    onPointerOut=${(e) => { e.stopPropagation(); setHovered(null); }}
+                                    font=${lang === 'fa' ? FA_FONT_URL : undefined}
+                                >
+                                    ${country.name[lang]}
+                                </${Text}>
+                            </${Billboard}>
+                        </group>
+                    ` : null}
+                </group>
+            `;
+        };
+
+        const ScatterPlot = ({ setHovered, hovered, countries, mapping, config, lang }) => {
+            const isX = config.axes.x && mapping.x !== 'none';
+            const isY = config.axes.y && mapping.y !== 'none';
+            const isZ = config.axes.z && mapping.z !== 'none';
+            const activeAxesCount = (isX ? 1 : 0) + (isY ? 1 : 0) + (isZ ? 1 : 0);
+            const isGlobeMode = activeAxesCount === 0;
+            const getM = (id) => METRICS_CONFIG[id];
+            
+            const visibleEntities = useMemo(() => {
+                return countries.filter(c => c.type !== 'figure' || config.showFigures);
+            }, [countries, config.showFigures]);
+
+            const staggerMap = useMemo(() => {
+                if (activeAxesCount !== 1) return null;
+                let activeMetricKey = null;
+                if (isX) activeMetricKey = mapping.x;
+                else if (isY) activeMetricKey = mapping.y;
+                else if (isZ) activeMetricKey = mapping.z;
+
+                if (!activeMetricKey) return null;
+
+                const sorted = [...visibleEntities].sort((a, b) => {
+                    return (a.pos[activeMetricKey] || 0) - (b.pos[activeMetricKey] || 0);
+                });
+                
+                const map = {};
+                sorted.forEach((c, i) => { map[c.code] = i; });
+                return map;
+            }, [visibleEntities, activeAxesCount, isX, isY, isZ, mapping]);
+
+            return html`
+                <group>
+                    ${isGlobeMode ? html`<${EarthGlobe} lang=${lang} />` : null}
+                    
+                    ${!isGlobeMode ? html`
+                        <${Axis} visible=${isX} position=${[0, 0, 0]} size=${[22, 0.05, 0.05]} startLabel=${isX ? getM(mapping.x)?.startLabel?.[lang] : ""} endLabel=${isX ? getM(mapping.x)?.endLabel?.[lang] : ""} color=${isX ? getM(mapping.x)?.color.light : "#cbd5e1"} lang=${lang} />
+                        <${Axis} visible=${isY} position=${[0, 0, 0]} size=${[0.05, 22, 0.05]} startLabel=${isY ? getM(mapping.y)?.startLabel?.[lang] : ""} endLabel=${isY ? getM(mapping.y)?.endLabel?.[lang] : ""} color=${isY ? getM(mapping.y)?.color.light : "#cbd5e1"} lang=${lang} />
+                        <${Axis} visible=${isZ} position=${[0, 0, 0]} size=${[0.05, 0.05, 22]} startLabel=${isZ ? getM(mapping.z)?.startLabel?.[lang] : ""} endLabel=${isZ ? getM(mapping.z)?.endLabel?.[lang] : ""} color=${isZ ? getM(mapping.z)?.color.light : "#cbd5e1"} lang=${lang} />
+
+                        <${GridPlane} visible=${isX && isZ} position=${[0, -10, 0]} size=${22} rotation=${[0, 0, 0]} color="#f1f5f9" gridColor="#cbd5e1" />
+                        <${GridPlane} visible=${isY && isZ} position=${[-10, 0, 0]} size=${22} rotation=${[0, 0, Math.PI / 2]} color="#e2e8f0" gridColor="#cbd5e1" />
+                        <${GridPlane} visible=${isX && isY} position=${[0, 0, -10]} size=${22} rotation=${[Math.PI / 2, 0, 0]} color="#f8fafc" gridColor="#cbd5e1" />
+                        <${IdeologyLabels} visible=${config.showIdeologies} config=${config} lang=${lang} />
+                    ` : null}
+
+                    ${visibleEntities.map((c, i) => {
+                        const staggerIndex = staggerMap ? staggerMap[c.code] : c.index;
+                        return html`<${CountrySphere} key=${c.code} country=${c} hovered=${hovered} setHovered=${setHovered} showLabels=${config.showLabels} config=${config} mapping=${mapping} activeAxesCount=${activeAxesCount} lang=${lang} staggerIndex=${staggerIndex} />`
+                    })}
+                </group>
+            `;
+        };
+
+        const TopControls = ({ config, setConfig, view, setView, mapping, setMapping, lang, setLang }) => {
+            const toggle = (key) => setConfig(prev => ({ ...prev, [key]: !prev[key] }));
+            const setViewMode = (mode) => setView({ mode });
+            const [isExpanded, setIsExpanded] = useState(false);
+
+            const toggleAxis = (axis) => {
+                const nextAxes = { ...config.axes, [axis]: !config.axes[axis] };
+                setConfig(prev => ({ ...prev, axes: nextAxes }));
+
+                const activeCount = (nextAxes.x ? 1 : 0) + (nextAxes.y ? 1 : 0) + (nextAxes.z ? 1 : 0);
+                if (activeCount === 2) {
+                    if (!nextAxes.z) setView({ mode: 'front' });
+                    else if (!nextAxes.y) setView({ mode: 'top' });
+                    else if (!nextAxes.x) setView({ mode: 'right' });
+                } else if (activeCount === 3) {
+                    setView({ mode: 'default' });
+                }
+            };
+
+            const MetricSelect = ({ axis, value }) => html`
+                <div className="flex flex-col mb-2">
+                    <div className="flex justify-between items-center mb-1">
+                         <span className="text-[10px] font-bold text-slate-400 uppercase">${UI_TEXT[`axis${axis.toUpperCase()}`][lang]}</span>
+                         <button onClick=${() => toggleAxis(axis)} className="text-xs hover:text-slate-600 text-slate-400">
+                             ${config.axes[axis] ? html`<${Icons.Eye} size=${12} />` : html`<${Icons.EyeOff} size=${12} />`}
+                         </button>
+                    </div>
+                    <select 
+                        value=${value}
+                        onChange=${(e) => setMapping(prev => ({ ...prev, [axis]: e.target.value }))}
+                        className="text-xs p-1 rounded border focus:border-blue-500 outline-none bg-slate-50 text-slate-700 border-slate-200"
+                        disabled=${!config.axes[axis]}
+                    >
+                        <option value="none">${UI_TEXT.none[lang]}</option>
+                        ${Object.values(METRICS_CONFIG).map(m => html`<option key=${m.id} value=${m.id}>${m.label[lang]}</option>`)}
+                    </select>
+                </div>
+            `;
+
+            return html`
+                <div className=${`absolute top-6 ${lang === 'fa' ? 'left-6 flex-row-reverse' : 'right-6 flex-row'} z-50 flex items-start gap-2 pointer-events-auto transition-all duration-300`} onMouseLeave=${() => setIsExpanded(false)}>
+                    
+                    <button onClick=${() => setLang(prev => prev === 'en' ? 'fa' : 'en')} className="bg-white text-slate-700 rounded-lg border border-slate-200 hover:bg-slate-50 w-12 h-12 flex flex-col items-center justify-center shadow-xl font-bold text-xs shrink-0 transition-transform active:scale-95">
+                        <${Icons.Lang} size=${16} className="mb-1"/>${lang === 'en' ? 'FA' : 'EN'}
+                    </button>
+                    
+                    <div className="bg-white/90 text-slate-700 rounded-xl border border-slate-200 backdrop-blur-md shadow-xl overflow-hidden transition-all duration-300 ease-in-out font-fa" style=${{ width: isExpanded ? '18rem' : '3rem', height: isExpanded ? 'auto' : '3rem', maxHeight: isExpanded ? '600px' : '3rem' }} dir=${lang === 'fa' ? 'rtl' : 'ltr'} onMouseEnter=${() => setIsExpanded(true)}>
+                        ${!isExpanded 
+                            ? html`<div className="w-full h-full flex items-center justify-center cursor-pointer transition-colors hover:text-blue-600"><${Icons.Settings} size=${24} /></div>` 
+                            : html`
+                            <div className="p-4 opacity-0 animate-fadeIn">
+                                <h3 className="text-slate-800 font-bold mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-slate-400"><${Icons.Layout} size=${14} /> ${UI_TEXT.viewControls[lang]}</h3>
+                                <div className="grid grid-cols-4 gap-2 mb-4">
+                                    <button onClick=${() => setViewMode('default')} className="p-1 rounded text-xs bg-slate-100 hover:bg-slate-200 text-slate-700">${UI_TEXT.iso[lang]}</button>
+                                    <button onClick=${() => setViewMode('front')} className="p-1 rounded text-xs bg-slate-100 hover:bg-slate-200 text-slate-700">${UI_TEXT.front[lang]}</button>
+                                    <button onClick=${() => setViewMode('right')} className="p-1 rounded text-xs bg-slate-100 hover:bg-slate-200 text-slate-700">${UI_TEXT.right[lang]}</button>
+                                    <button onClick=${() => setViewMode('top')} className="p-1 rounded text-xs bg-slate-100 hover:bg-slate-200 text-slate-700">${UI_TEXT.top[lang]}</button>
+                                </div>
+                                <hr className="border-slate-100 mb-4"/>
+                                <h3 className="text-slate-800 font-bold mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-slate-400"><${Icons.Arrows} size=${14} /> ${UI_TEXT.dataMapping[lang]}</h3>
+                                <${MetricSelect} axis="x" value=${mapping.x} />
+                                <${MetricSelect} axis="y" value=${mapping.y} />
+                                <${MetricSelect} axis="z" value=${mapping.z} />
+                                <hr className="border-slate-100 my-4"/>
+                                <div className="space-y-2">
+                                    <button onClick=${() => toggle('showLabels')} className="w-full flex items-center justify-between text-xs transition-colors hover:text-blue-600"><span>${UI_TEXT.countryNames[lang]}</span>${config.showLabels ? html`<${Icons.Eye} size=${14} className="text-emerald-500"/>` : html`<${Icons.EyeOff} size=${14}/>`}</button>
+                                    <button onClick=${() => toggle('showIdeologies')} className="w-full flex items-center justify-between text-xs transition-colors hover:text-blue-600"><span>${UI_TEXT.polLabels[lang]}</span>${config.showIdeologies ? html`<${Icons.Eye} size=${14} className="text-emerald-500"/>` : html`<${Icons.EyeOff} size=${14}/>`}</button>
+                                    <button onClick=${() => toggle('showFigures')} className="w-full flex items-center justify-between text-xs transition-colors hover:text-blue-600"><span>${UI_TEXT.polFigures[lang]}</span><div className="flex items-center gap-2">${config.showFigures ? html`<${Icons.Eye} size=${14} className="text-emerald-500"/>` : html`<${Icons.EyeOff} size=${14}/>`}<${Icons.User} size=${12} className="text-amber-500"/></div></button>
+                                </div>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+        };
+
+        const Overlay = ({ hoveredCountry, countries, config, setConfig, setView, mapping, setMapping, lang, setLang, tourStep, setTourStep, setShowWelcome }) => {
+            const data = countries.find(c => c.name[lang] === hoveredCountry);
+            const [showAbout, setShowAbout] = useState(false);
+
+            return html`
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none p-4 flex flex-col justify-between z-10" dir=${lang === 'fa' ? 'rtl' : 'ltr'}>
+                    <div className="flex justify-between items-start pointer-events-auto w-full">
+                        <div className="bg-white/90 text-slate-800 p-6 rounded-2xl shadow-xl backdrop-blur-sm border border-slate-200 max-w-sm hidden md:block font-fa">
+                            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent mb-2">${UI_TEXT.title[lang]}</h1>
+                            <div className="flex items-center gap-2 text-xs mb-2 text-slate-500"><${Icons.Info} size=${14} /><span>${UI_TEXT.subtitle[lang]}</span></div>
+                            <div className="mt-2 text-xs text-blue-600 hover:text-blue-500 cursor-pointer transition-colors" onClick=${() => setShowAbout(true)}>${UI_TEXT.by[lang]}</div>
+                        </div>
+                        <div className="md:hidden bg-white/80 text-slate-800 p-3 rounded-xl border border-slate-200 backdrop-blur-sm absolute top-4 left-4 font-fa pointer-events-auto"><h1 className="text-sm font-bold text-blue-600">Data Explorer</h1></div>
+                        
+                        ${tourStep === -1 ? html`<${TopControls} config=${config} setConfig=${setConfig} setView=${setView} mapping=${mapping} setMapping=${setMapping} lang=${lang} setLang=${setLang} />` : null}
+                    </div>
+
+                    ${showAbout ? html`
+                        <div className="absolute inset-0 flex items-center justify-center backdrop-blur-sm z-50 pointer-events-auto font-fa bg-black/30" onClick=${() => setShowAbout(false)}>
+                             <div className="bg-white border-slate-200 border p-6 rounded-2xl shadow-2xl max-w-md m-4 relative w-full" onClick=${e => e.stopPropagation()}>
+                                <button onClick=${() => setShowAbout(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800"><${Icons.X} size=${20}/></button>
+                                <h2 className="text-xl font-bold mb-4 text-slate-800">${UI_TEXT.aboutMe[lang]}</h2>
+                                <p className="text-sm leading-relaxed mb-6 text-slate-600">${UI_TEXT.aboutText[lang]}</p>
+                                <div className="flex justify-center gap-6 mb-6">
+                                    <a href="https://www.linkedin.com/in/alinoorani1/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-[#0077b5] transition-colors"><${Icons.Linkedin} size=${24} /></a>
+                                    <a href="https://noorani.work/" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-emerald-500 transition-colors"><${Icons.Globe} size=${24} /></a>
+                                    <a href="https://x.com/ali_noorani_teh" target="_blank" rel="noopener noreferrer" className="text-slate-400 transition-colors hover:text-slate-800"><${Icons.Twitter} size=${24} /></a>
+                                    <a href="https://instagram.com/alirecommends" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-[#E1306C] transition-colors"><${Icons.Instagram} size=${24} /></a>
+                                </div>
+                                <hr className="my-4 border-slate-100" />
+                                <div className="text-center">
+                                    <p className="text-xs mb-3 text-slate-500">${UI_TEXT.support[lang]}</p>
+                                    <a href="https://ko-fi.com/N4N61QZPXB" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 bg-[#72a4f2] hover:bg-[#5b8ddb] text-white px-4 py-2 rounded-full font-bold transition-transform hover:scale-105 active:scale-95 shadow-lg mx-auto"><${Icons.Coffee} size=${18} fill="currentColor" /><span>${UI_TEXT.buyCoffee[lang]}</span></a>
+                                </div>
+                            </div>
+                        </div>
+                    ` : null}
+
+                    ${data ? html`
+                        <div className=${`absolute ${lang === 'fa' ? 'md:left-6' : 'md:right-6'} md:top-24 md:w-80 md:h-auto bottom-0 left-0 w-full md:bottom-auto pointer-events-auto max-h-[50vh] md:max-h-[80vh] overflow-y-auto scrollbar-hide p-4 md:p-0 font-fa`}>
+                             <div className="bg-white/95 text-slate-800 border-slate-200 p-6 rounded-xl shadow-2xl border-t-4 md:border-t-0 md:border-l-4 border-blue-500 backdrop-blur-md transition-all duration-300">
+                                <div className="flex justify-between items-start">
+                                    <div>
+                                        <h2 className="text-2xl font-bold mb-1 flex items-center gap-2">${data.name[lang]}${data.type === 'figure' ? html`<${Icons.User} size=${20} className="text-amber-500" />` : null}</h2>
+                                        <span className="text-xs uppercase tracking-wider font-semibold text-slate-500">${(data.region && data.region[lang]) || (lang === 'fa' ? "چهره تاریخی" : "Historical Figure")}</span>
+                                    </div>
+                                </div>
+                                <p className="text-sm mt-4 mb-4 leading-relaxed border-l-2 pl-3 italic text-slate-600 border-slate-300">${data.desc[lang]}</p>
+                                ${data.note ? html`<div className="mb-4 bg-indigo-50 border border-indigo-200 rounded p-2"><p className="text-xs text-indigo-800"><span className="font-bold text-indigo-600">${UI_TEXT.note[lang]}</span> ${data.note[lang]}</p></div>` : null}
+                                
+                                <div className="space-y-3 mb-6">
+                                    <div className="text-xs font-bold uppercase tracking-wider mb-2 text-slate-500">${UI_TEXT.selectedMetrics[lang]}</div>
+                                    ${['x', 'y', 'z'].map(axis => {
+                                        if(!config.axes[axis] || mapping[axis] === 'none') return null;
+                                        const mKey = mapping[axis];
+                                        const mConfig = METRICS_CONFIG[mKey];
+                                        const val = data.metrics[mKey];
+                                        const pct = ((val - mConfig.min) / (mConfig.max - mConfig.min)) * 100;
+                                        return html`
+                                            <div key=${axis} className="bg-slate-50 border-slate-100 p-2 rounded border">
+                                                <div className="flex justify-between text-xs mb-1">
+                                                    <span className="text-slate-500">${mConfig.label[lang]} (${axis.toUpperCase()})</span>
+                                                    <span className="font-bold" style=${{color: mConfig.color.light}}>${val}</span>
+                                                </div>
+                                                <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200">
+                                                    <div className="h-full" style=${{ width: `${pct}%`, backgroundColor: mConfig.color.light }}></div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    })}
+                                </div>
+                                <hr className="my-4 border-slate-100" />
+                                <div className="text-xs font-bold uppercase tracking-wider mb-4 text-slate-500">${UI_TEXT.countryProfile[lang]}</div>
+                                <div className="space-y-4">
+                                    ${data.type !== 'figure' ? html`<div><div className="flex justify-between mb-1"><span className="text-xs uppercase text-slate-500">${UI_TEXT.hdi[lang]}</span><span className="font-mono text-emerald-600 font-bold">${data.hdi}</span></div><div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200"><div className="h-full bg-gradient-to-r from-red-500 via-yellow-500 to-emerald-500" style=${{ width: `${data.hdi * 100}%` }}></div></div></div>` : null}
+                                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+                                        <div className="bg-slate-50 border-slate-100 p-2 rounded border"><div className="text-xs mb-1 text-slate-500">${UI_TEXT.democracy[lang]}</div><div className="font-bold text-lg text-green-600">${data.metrics?.auth}</div><div className="text-[10px] leading-tight mt-1 text-slate-500">${getAuthLabel(data.metrics?.auth, lang)}</div></div>
+                                        <div className="bg-slate-50 border-slate-100 p-2 rounded border"><div className="text-xs mb-1 text-slate-500">${UI_TEXT.economic[lang]}</div><div className="font-bold text-lg text-blue-600">${data.metrics?.econ}</div><div className="text-[10px] leading-tight mt-1 text-slate-500">${getEconLabel(data.metrics?.econ, lang)}</div></div>
+                                    </div>
+                                    <div className="bg-slate-50 border-slate-100 p-2 rounded border"><div className="text-xs mb-1 text-slate-500">${UI_TEXT.cultural[lang]}</div><div className="flex justify-between text-xs px-1 text-slate-500"><span>${UI_TEXT.trad[lang]}</span><span>${UI_TEXT.prog[lang]}</span></div><div className="w-full h-1 rounded-full mt-2 relative mb-2 bg-slate-200"><div className="absolute w-2 h-2 bg-pink-500 rounded-full top-1/2 transform -translate-y-1/2 shadow" style=${{ [lang === 'fa' ? 'right' : 'left']: `${((data.metrics?.cult + 2.5) / 5) * 100}%` }}></div></div></div>
+                                </div>
+                             </div>
+                        </div>
+                    ` : null}
+                </div>
+            `;
+        };
+
+        function App() {
+            const [hovered, setHovered] = useState(null);
+            const [view, setView] = useState({ mode: 'default' });
+            const [lang, setLang] = useState('en'); 
+            
+            const [config, setConfig] = useState({ axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: false, showFigures: false });
+            const [mapping, setMapping] = useState({ x: 'econ', y: 'cult', z: 'auth' });
+            const [tourStep, setTourStep] = useState(-1);
+            const [showWelcome, setShowWelcome] = useState(true);
+
+            useEffect(() => {
+                if (tourStep > -1 && tourStep < TOUR_STEPS.length) {
+                    const step = TOUR_STEPS[tourStep];
+                    setView({ mode: step.view });
+                    setConfig(step.config);
+                    if (step.highlight) {
+                        const target = RAW_DATA.find(c => c.name.en === step.highlight) || FIGURES_DATA.find(c => c.name.en === step.highlight);
+                        if (target) setHovered(target.name[lang]);
+                    } else {
+                        setHovered(null);
+                    }
+                }
+            }, [tourStep, lang]);
+
+            const normalize = (val, metricId) => {
+                if(metricId === 'none') return 0;
+                const m = METRICS_CONFIG[metricId];
+                if(val === undefined) return 0;
+                return ((val - m.min) / (m.max - m.min)) * 20 - 10;
+            };
+
+            const countries = useMemo(() => {
+                const combined = [...RAW_DATA, ...FIGURES_DATA].map((c, i) => {
+                    const pos = {};
+                    Object.keys(METRICS_CONFIG).forEach(key => {
+                        const val = c.metrics?.[key];
+                        pos[key] = normalize(val !== undefined ? val : METRICS_CONFIG[key].min, key);
+                    });
+                    
+                    const rankGlobal = (pos.econ + 10); 
+
+                    return {
+                        ...c,
+                        index: i,
+                        pos: pos,
+                        color: c.type === 'figure' ? '#f59e0b' : ((c.hdi < 0.7) ? new THREE.Color('#ef4444').lerp(new THREE.Color('#eab308'), (c.hdi - 0.5) * 2) : new THREE.Color('#eab308').lerp(new THREE.Color('#16a34a'), (c.hdi - 0.7) * 3.3)),
+                        rankGlobal: rankGlobal,
+                        rankEcon: rankGlobal
+                    };
+                });
+                return combined;
+            }, []); 
+
+            return html`
+                <div className=${`w-full h-full relative font-sans transition-colors duration-500 ${lang === 'fa' ? 'font-fa' : ''} bg-[#f1f5f9]`}>
+                    ${showWelcome ? html`<${WelcomeModal} startTour=${() => { setShowWelcome(false); setTourStep(0); }} close=${() => setShowWelcome(false)} lang=${lang} />` : null}
+                    ${tourStep > -1 ? html`<${TourControls} step=${tourStep} next=${() => tourStep < TOUR_STEPS.length - 1 ? setTourStep(s => s + 1) : setTourStep(-1)} prev=${() => setTourStep(s => s - 1)} skip=${() => setTourStep(-1)} lang=${lang} />` : null}
+                    <${Overlay} hoveredCountry=${hovered} countries=${countries} config=${config} setConfig=${setConfig} setView=${setView} mapping=${mapping} setMapping=${setMapping} lang=${lang} setLang=${setLang} tourStep=${tourStep} setTourStep=${setTourStep} />
+                    <${Canvas} camera=${{ position: [20, 15, 20], fov: 45 }}>
+                        <color attach="background" args=${['#f1f5f9']} />
+                        <fog attach="fog" args=${['#f1f5f9', 80, 200]} />
+                        <${CameraController} view=${view} />
+                        <ambientLight intensity=${1.5} />
+                        <pointLight position=${[10, 10, 10]} intensity=${1} />
+                        <pointLight position=${[-10, -10, -10]} intensity=${0.5} color="#3b82f6" />
+                        <group position=${[0, 0, 0]}>
+                            <${ScatterPlot} hovered=${hovered} setHovered=${setHovered} countries=${countries} config=${config} mapping=${mapping} lang=${lang} />
+                        </group>
+                        <${OrbitControls} enablePan=${true} enableZoom=${true} minDistance=${5} maxDistance=${100} autoRotate=${false} />
+                    </${Canvas}>
+                </div>
+            `;
+        }
+
+        const root = createRoot(document.getElementById('root'));
+        root.render(html`<${App} />`);
+    </script>
+</body>
+</html>
