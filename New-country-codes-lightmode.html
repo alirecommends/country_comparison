@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,26 +8,80 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* LIGHT MODE BACKGROUND */
-        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; background-color: #f1f5f9; }
-        #root { width: 100%; height: 100%; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-        
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            background-color: #f1f5f9;
+        }
+
+        #root {
+            width: 100%;
+            height: 100%;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
         /* Font for Persian HTML Overlay */
-        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
-        .font-fa { font-family: 'Vazirmatn', sans-serif; }
+        @font-face {
+            font-family: 'Dana';
+            src: url('./Dana-Regular.ttf') format('truetype');
+            /* Match your exact file name */
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        .font-fa {
+            font-family: 'Dana', sans-serif;
+        }
 
         @keyframes pulse-ring {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7); } /* Blue-600 */
-            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(37, 99, 235, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.7);
+            }
+
+            /* Blue-600 */
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 10px rgba(37, 99, 235, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(37, 99, 235, 0);
+            }
         }
-        .animate-pulse-ring { animation: pulse-ring 2s infinite; }
-        
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fadeIn { animation: fadeIn 0.3s forwards 0.1s; }
+
+        .animate-pulse-ring {
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        .animate-fadeIn {
+            animation: fadeIn 0.3s forwards 0.1s;
+        }
     </style>
-    
+
     <!-- Import Map to handle dependencies NATIVELY -->
     <script type="importmap">
     {
@@ -41,6 +96,7 @@
     }
     </script>
 </head>
+
 <body>
     <div id="root"></div>
 
@@ -72,14 +128,14 @@
             Globe: (props) => html`<${Icon} ...${props} path=${html`<circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>`} />`,
             Lang: (props) => html`<${Icon} ...${props} path=${html`<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>`} />`,
             X: (props) => html`<${Icon} ...${props} path=${html`<path d="M18 6 6 18"/><path d="m6 6 12 12"/>`} />`,
-            Play: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||20} height=${props.size||20} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
-            Skip: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||14} height=${props.size||14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>`,
+            Play: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size || 20} height=${props.size || 20} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
+            Skip: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size || 14} height=${props.size || 14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/></svg>`,
             Left: (props) => html`<${Icon} ...${props} path=${html`<path d="m15 18-6-6 6-6"/>`} />`,
             Right: (props) => html`<${Icon} ...${props} path=${html`<path d="m9 18 6-6-6-6"/>`} />`,
-            Twitter: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||24} height=${props.size||24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>`,
-            Linkedin: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||24} height=${props.size||24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>`,
-            Instagram: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||24} height=${props.size||24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>`,
-            Coffee: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size||18} height=${props.size||18} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>`
+            Twitter: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size || 24} height=${props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"/></svg>`,
+            Linkedin: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size || 24} height=${props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>`,
+            Instagram: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size || 24} height=${props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>`,
+            Coffee: (props) => html`<svg xmlns="http://www.w3.org/2000/svg" width=${props.size || 18} height=${props.size || 18} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className=${props.className}><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" x2="6" y1="2" y2="4"/><line x1="10" x2="10" y1="2" y2="4"/><line x1="14" x2="14" y1="2" y2="4"/></svg>`
         };
 
         const FA_FONT_URL = "https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/ttf/Vazirmatn-Regular.ttf";
@@ -204,9 +260,9 @@
         const TOUR_STEPS = [
             {
                 title: { en: "The 3D Political Space", fa: "فضای سیاسی سه‌بعدی" },
-                text: { 
-                    en: "Welcome! Unlike traditional 2D charts, this map visualizes nations across multiple dimensions. You can explore relationships between Economy, Culture, Democracy, and many other indicators.", 
-                    fa: "خوش آمدید! برخلاف نمودارهای سنتی دوبعدی، این نقشه کشورها را در ابعاد مختلف تجسم می‌کند. شما می‌توانید روابط بین اقتصاد، فرهنگ، دموکراسی و بسیاری از شاخص‌های دیگر را کاوش کنید." 
+                text: {
+                    en: "Welcome! Unlike traditional 2D charts, this map visualizes nations across multiple dimensions. You can explore relationships between Economy, Culture, Democracy, and many other indicators.",
+                    fa: "خوش آمدید! برخلاف نمودارهای سنتی دوبعدی، این نقشه کشورها را در ابعاد مختلف تجسم می‌کند. شما می‌توانید روابط بین اقتصاد، فرهنگ، دموکراسی و بسیاری از شاخص‌های دیگر را کاوش کنید."
                 },
                 view: 'default',
                 config: { axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: true, showFigures: false },
@@ -214,39 +270,39 @@
             },
             {
                 title: { en: "Dimension 1: Economy", fa: "بعد اول: اقتصاد" },
-                text: { 
-                    en: "The Blue Axis (X) represents Economic Freedom. Right is Free Market, Left is State Control. Notice how the US and Singapore are far right, while North Korea is far left.", 
-                    fa: "محور آبی (X) نشان‌دهنده آزادی اقتصادی است. راست بازار آزاد و چپ کنترل دولتی است. توجه کنید که آمریکا و سنگاپور در سمت راست و کره شمالی در سمت چپ قرار دارند." 
+                text: {
+                    en: "The Blue Axis (X) represents Economic Freedom. Right is Free Market, Left is State Control. Notice how the US and Singapore are far right, while North Korea is far left.",
+                    fa: "محور آبی (X) نشان‌دهنده آزادی اقتصادی است. راست بازار آزاد و چپ کنترل دولتی است. توجه کنید که آمریکا و سنگاپور در سمت راست و کره شمالی در سمت چپ قرار دارند."
                 },
-                view: 'top', 
-                config: { axes: { x: true, y: false, z: false }, showLabels: true, showIdeologies: false, showFigures: false }, 
+                view: 'top',
+                config: { axes: { x: true, y: false, z: false }, showLabels: true, showIdeologies: false, showFigures: false },
                 highlight: "United States"
             },
             {
                 title: { en: "Dimension 2: Culture", fa: "بعد دوم: فرهنگ" },
-                text: { 
-                    en: "The Pink Axis (Y) maps Cultural Values. Up is Secular/Progressive, Down is Traditional/Religious. Scandinavian countries cluster at the top, while Middle Eastern nations are generally lower.", 
-                    fa: "محور صورتی (Y) ارزش‌های فرهنگی را ترسیم می‌کند. بالا سکولار/پیشرو و پایین سنتی/مذهبی است. کشورهای اسکاندیناوی در بالا و کشورهای خاورمیانه عموماً در پایین قرار دارند." 
+                text: {
+                    en: "The Pink Axis (Y) maps Cultural Values. Up is Secular/Progressive, Down is Traditional/Religious. Scandinavian countries cluster at the top, while Middle Eastern nations are generally lower.",
+                    fa: "محور صورتی (Y) ارزش‌های فرهنگی را ترسیم می‌کند. بالا سکولار/پیشرو و پایین سنتی/مذهبی است. کشورهای اسکاندیناوی در بالا و کشورهای خاورمیانه عموماً در پایین قرار دارند."
                 },
-                view: 'right', 
+                view: 'right',
                 config: { axes: { x: false, y: true, z: false }, showLabels: true, showIdeologies: false, showFigures: false },
                 highlight: "Sweden"
             },
             {
                 title: { en: "Dimension 3: Authority", fa: "بعد سوم: اقتدار" },
-                text: { 
-                    en: "The Green Axis (Z) is Governance. Front is Democratic/Libertarian, Back is Authoritarian. This depth allows us to distinguish between Free Market Democracies and Authoritarian Capitalists.", 
-                    fa: "محور سبز (Z) حکمرانی است. جلو دموکراتیک/آزادی‌خواه و عقب اقتدارگرا است. این عمق به ما اجازه می‌دهد بین دموکراسی‌های بازار آزاد و سرمایه‌داری اقتدارگرا تمایز قائل شویم." 
+                text: {
+                    en: "The Green Axis (Z) is Governance. Front is Democratic/Libertarian, Back is Authoritarian. This depth allows us to distinguish between Free Market Democracies and Authoritarian Capitalists.",
+                    fa: "محور سبز (Z) حکمرانی است. جلو دموکراتیک/آزادی‌خواه و عقب اقتدارگرا است. این عمق به ما اجازه می‌دهد بین دموکراسی‌های بازار آزاد و سرمایه‌داری اقتدارگرا تمایز قائل شویم."
                 },
-                view: 'default', 
+                view: 'default',
                 config: { axes: { x: false, y: false, z: true }, showLabels: true, showIdeologies: false, showFigures: false },
                 highlight: "North Korea"
             },
             {
                 title: { en: "The Nordic Model", fa: "مدل نوردیک" },
-                text: { 
-                    en: "Bringing it all together: Nordic countries are often misunderstood. They are high on Economic Freedom (Right) and Democracy (Front), but fund welfare through taxes. They are distinct from the Authoritarian Left.", 
-                    fa: "ترکیب همه ابعاد: کشورهای نوردیک اغلب اشتباه درک می‌شوند. آن‌ها در آزادی اقتصادی (راست) و دموکراسی (جلو) بالا هستند، اما رفاه را از طریق مالیات تأمین می‌کنند. آن‌ها از چپ اقتدارگرا متمایز هستند." 
+                text: {
+                    en: "Bringing it all together: Nordic countries are often misunderstood. They are high on Economic Freedom (Right) and Democracy (Front), but fund welfare through taxes. They are distinct from the Authoritarian Left.",
+                    fa: "ترکیب همه ابعاد: کشورهای نوردیک اغلب اشتباه درک می‌شوند. آن‌ها در آزادی اقتصادی (راست) و دموکراسی (جلو) بالا هستند، اما رفاه را از طریق مالیات تأمین می‌کنند. آن‌ها از چپ اقتدارگرا متمایز هستند."
                 },
                 view: 'default',
                 config: { axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: true, showFigures: false },
@@ -254,9 +310,9 @@
             },
             {
                 title: { en: "Historical Context", fa: "زمینه تاریخی" },
-                text: { 
-                    en: "We can also map historical figures. Toggle 'Political Figures' to compare leaders like Gandhi (Democratic/Traditional) vs Stalin (Authoritarian/Statist).", 
-                    fa: "ما همچنین می‌توانیم چهره‌های تاریخی را ترسیم کنیم. «چهره‌های سیاسی» را روشن کنید تا رهبرانی مانند گاندی (دموکراتیک/سنتی) را با استالین (اقتدارگرا/دولتی) مقایسه کنید." 
+                text: {
+                    en: "We can also map historical figures. Toggle 'Political Figures' to compare leaders like Gandhi (Democratic/Traditional) vs Stalin (Authoritarian/Statist).",
+                    fa: "ما همچنین می‌توانیم چهره‌های تاریخی را ترسیم کنیم. «چهره‌های سیاسی» را روشن کنید تا رهبرانی مانند گاندی (دموکراتیک/سنتی) را با استالین (اقتدارگرا/دولتی) مقایسه کنید."
                 },
                 view: 'default',
                 config: { axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: false, showFigures: true },
@@ -367,19 +423,19 @@
 
         const Axis = ({ position, size, startLabel, endLabel, color, visible, lang }) => {
             if (!visible) return null;
-            const halfSize = [size[0]/2, size[1]/2, size[2]/2];
+            const halfSize = [size[0] / 2, size[1] / 2, size[2] / 2];
             const offset = 2.5;
-            const startPos = [size[0]>1?position[0]-halfSize[0]-offset:position[0], size[1]>1?position[1]-halfSize[1]-offset:position[1], size[2]>1?position[2]-halfSize[2]-offset:position[2]];
-            const endPos = [size[0]>1?position[0]+halfSize[0]+offset:position[0], size[1]>1?position[1]+halfSize[1]+offset:position[1], size[2]>1?position[2]+halfSize[2]+offset:position[2]];
-            const sAX = size[0]>1?"right":"center", sAY = size[1]>1?"top":"middle";
-            const eAX = size[0]>1?"left":"center", eAY = size[1]>1?"bottom":"middle";
-            const arrowStartPos = [size[0]>1?position[0]-halfSize[0]:position[0], size[1]>1?position[1]-halfSize[1]:position[1], size[2]>1?position[2]-halfSize[2]:position[2]];
-            const arrowEndPos = [size[0]>1?position[0]+halfSize[0]:position[0], size[1]>1?position[1]+halfSize[1]:position[1], size[2]>1?position[2]+halfSize[2]:position[2]];
-            
-            let rotStart = [0,0,0], rotEnd = [0,0,0];
-            if(size[0]>1) { rotStart=[0,0,Math.PI/2]; rotEnd=[0,0,-Math.PI/2]; }
-            else if(size[1]>1) { rotStart=[0,0,Math.PI]; rotEnd=[0,0,0]; }
-            else { rotStart=[-Math.PI/2,0,0]; rotEnd=[Math.PI/2,0,0]; }
+            const startPos = [size[0] > 1 ? position[0] - halfSize[0] - offset : position[0], size[1] > 1 ? position[1] - halfSize[1] - offset : position[1], size[2] > 1 ? position[2] - halfSize[2] - offset : position[2]];
+            const endPos = [size[0] > 1 ? position[0] + halfSize[0] + offset : position[0], size[1] > 1 ? position[1] + halfSize[1] + offset : position[1], size[2] > 1 ? position[2] + halfSize[2] + offset : position[2]];
+            const sAX = size[0] > 1 ? "right" : "center", sAY = size[1] > 1 ? "top" : "middle";
+            const eAX = size[0] > 1 ? "left" : "center", eAY = size[1] > 1 ? "bottom" : "middle";
+            const arrowStartPos = [size[0] > 1 ? position[0] - halfSize[0] : position[0], size[1] > 1 ? position[1] - halfSize[1] : position[1], size[2] > 1 ? position[2] - halfSize[2] : position[2]];
+            const arrowEndPos = [size[0] > 1 ? position[0] + halfSize[0] : position[0], size[1] > 1 ? position[1] + halfSize[1] : position[1], size[2] > 1 ? position[2] + halfSize[2] : position[2]];
+
+            let rotStart = [0, 0, 0], rotEnd = [0, 0, 0];
+            if (size[0] > 1) { rotStart = [0, 0, Math.PI / 2]; rotEnd = [0, 0, -Math.PI / 2]; }
+            else if (size[1] > 1) { rotStart = [0, 0, Math.PI]; rotEnd = [0, 0, 0]; }
+            else { rotStart = [-Math.PI / 2, 0, 0]; rotEnd = [Math.PI / 2, 0, 0]; }
 
             return html`
                 <group>
@@ -397,7 +453,7 @@
             return html`
                 <group position=${position} rotation=${rotation}>
                     <gridHelper args=${[size, 10, gridColor, gridColor]} />
-                    <mesh rotation=${[-Math.PI/2, 0, 0]} position=${[0, -0.05, 0]}><planeGeometry args=${[size, size]} /><meshBasicMaterial color=${color} transparent opacity=${0.1} side=${THREE.DoubleSide} /></mesh>
+                    <mesh rotation=${[-Math.PI / 2, 0, 0]} position=${[0, -0.05, 0]}><planeGeometry args=${[size, size]} /><meshBasicMaterial color=${color} transparent opacity=${0.1} side=${THREE.DoubleSide} /></mesh>
                 </group>
             `;
         };
@@ -433,21 +489,21 @@
         const IdeologyLabels = ({ visible, config, lang }) => {
             if (!visible) return null;
             const items = [
-                { text: UI_TEXT.libertarian[lang], pos: [8, 8, 8], color: "#b45309", req: ['z'] }, 
-                { text: UI_TEXT.authLeft[lang], pos: [-8, -5, -8], color: "#b91c1c", req: ['z', 'x'] }, 
-                { text: UI_TEXT.socDem[lang], pos: [-5, 5, 8], color: "#15803d", req: ['x', 'z'] }, 
-                { text: UI_TEXT.trad[lang], pos: [0, -9, 0], color: "#be185d", req: ['y'] }, 
-                { text: UI_TEXT.theo[lang], pos: [0, -9, -8], color: "#7e22ce", req: ['y', 'z'] }, 
-                { text: UI_TEXT.prog[lang], pos: [0, 9, 0], color: "#0f766e", req: ['y'] }, 
-                { text: UI_TEXT.fascism[lang], pos: [0, 8, -9], color: "#7f1d1d", req: ['z'] }, 
-                { text: UI_TEXT.libDem[lang], pos: [5, 0, 8], color: "#1d4ed8", req: ['z'] } 
+                { text: UI_TEXT.libertarian[lang], pos: [8, 8, 8], color: "#b45309", req: ['z'] },
+                { text: UI_TEXT.authLeft[lang], pos: [-8, -5, -8], color: "#b91c1c", req: ['z', 'x'] },
+                { text: UI_TEXT.socDem[lang], pos: [-5, 5, 8], color: "#15803d", req: ['x', 'z'] },
+                { text: UI_TEXT.trad[lang], pos: [0, -9, 0], color: "#be185d", req: ['y'] },
+                { text: UI_TEXT.theo[lang], pos: [0, -9, -8], color: "#7e22ce", req: ['y', 'z'] },
+                { text: UI_TEXT.prog[lang], pos: [0, 9, 0], color: "#0f766e", req: ['y'] },
+                { text: UI_TEXT.fascism[lang], pos: [0, 8, -9], color: "#7f1d1d", req: ['z'] },
+                { text: UI_TEXT.libDem[lang], pos: [5, 0, 8], color: "#1d4ed8", req: ['z'] }
             ];
             return html`
                 <group>
                     ${items.map((l, i) => {
-                        if (l.req && !l.req.every(a => config.axes[a])) return null;
-                        return html`<${IdeologyLabelItem} key=${i} label=${l} config=${config} lang=${lang} />`;
-                    })}
+                if (l.req && !l.req.every(a => config.axes[a])) return null;
+                return html`<${IdeologyLabelItem} key=${i} label=${l} config=${config} lang=${lang} />`;
+            })}
                 </group>
             `;
         };
@@ -483,14 +539,14 @@
 
             let lo = [0, 0.8, 0];
             let showLine = false;
-            
+
             if (activeAxesCount === 1) {
                 showLine = true;
-                const idx = staggerIndex !== undefined ? staggerIndex : country.index; 
+                const idx = staggerIndex !== undefined ? staggerIndex : country.index;
                 const direction = idx % 2 === 0 ? 1 : -1;
-                const variance = 2.0 + (idx % 3) * 2.0; 
+                const variance = 2.0 + (idx % 3) * 2.0;
                 const stag = direction * variance;
-                lo = [0, stag, 0]; 
+                lo = [0, stag, 0];
             } else if (activeAxesCount === 0) {
                 lo = [0, 0.6, 0];
             }
@@ -510,7 +566,7 @@
                     </mesh>
                     ${shouldShowLabel ? html`
                         <group>
-                            ${showLine ? html`<mesh position=${[lo[0]/2, lo[1]/2, lo[2]/2]}> 
+                            ${showLine ? html`<mesh position=${[lo[0] / 2, lo[1] / 2, lo[2] / 2]}> 
                                 <boxGeometry args=${[0.02, Math.abs(lo[1]), 0.02]} />
                                 <meshBasicMaterial color="#94a3b8" transparent opacity=${0.5} />
                             </mesh>` : null}
@@ -542,7 +598,7 @@
             const activeAxesCount = (isX ? 1 : 0) + (isY ? 1 : 0) + (isZ ? 1 : 0);
             const isGlobeMode = activeAxesCount === 0;
             const getM = (id) => METRICS_CONFIG[id];
-            
+
             const visibleEntities = useMemo(() => {
                 return countries.filter(c => c.type !== 'figure' || config.showFigures);
             }, [countries, config.showFigures]);
@@ -559,7 +615,7 @@
                 const sorted = [...visibleEntities].sort((a, b) => {
                     return (a.pos[activeMetricKey] || 0) - (b.pos[activeMetricKey] || 0);
                 });
-                
+
                 const map = {};
                 sorted.forEach((c, i) => { map[c.code] = i; });
                 return map;
@@ -581,9 +637,9 @@
                     ` : null}
 
                     ${visibleEntities.map((c, i) => {
-                        const staggerIndex = staggerMap ? staggerMap[c.code] : c.index;
-                        return html`<${CountrySphere} key=${c.code} country=${c} hovered=${hovered} setHovered=${setHovered} showLabels=${config.showLabels} config=${config} mapping=${mapping} activeAxesCount=${activeAxesCount} lang=${lang} staggerIndex=${staggerIndex} />`
-                    })}
+                const staggerIndex = staggerMap ? staggerMap[c.code] : c.index;
+                return html`<${CountrySphere} key=${c.code} country=${c} hovered=${hovered} setHovered=${setHovered} showLabels=${config.showLabels} config=${config} mapping=${mapping} activeAxesCount=${activeAxesCount} lang=${lang} staggerIndex=${staggerIndex} />`
+            })}
                 </group>
             `;
         };
@@ -635,9 +691,9 @@
                     </button>
                     
                     <div className="bg-white/90 text-slate-700 rounded-xl border border-slate-200 backdrop-blur-md shadow-xl overflow-hidden transition-all duration-300 ease-in-out font-fa" style=${{ width: isExpanded ? '18rem' : '3rem', height: isExpanded ? 'auto' : '3rem', maxHeight: isExpanded ? '600px' : '3rem' }} dir=${lang === 'fa' ? 'rtl' : 'ltr'} onMouseEnter=${() => setIsExpanded(true)}>
-                        ${!isExpanded 
-                            ? html`<div className="w-full h-full flex items-center justify-center cursor-pointer transition-colors hover:text-blue-600"><${Icons.Settings} size=${24} /></div>` 
-                            : html`
+                        ${!isExpanded
+                    ? html`<div className="w-full h-full flex items-center justify-center cursor-pointer transition-colors hover:text-blue-600"><${Icons.Settings} size=${24} /></div>`
+                    : html`
                             <div className="p-4 opacity-0 animate-fadeIn">
                                 <h3 className="text-slate-800 font-bold mb-2 flex items-center gap-2 text-xs uppercase tracking-wider text-slate-400"><${Icons.Layout} size=${14} /> ${UI_TEXT.viewControls[lang]}</h3>
                                 <div className="grid grid-cols-4 gap-2 mb-4">
@@ -717,23 +773,23 @@
                                 <div className="space-y-3 mb-6">
                                     <div className="text-xs font-bold uppercase tracking-wider mb-2 text-slate-500">${UI_TEXT.selectedMetrics[lang]}</div>
                                     ${['x', 'y', 'z'].map(axis => {
-                                        if(!config.axes[axis] || mapping[axis] === 'none') return null;
-                                        const mKey = mapping[axis];
-                                        const mConfig = METRICS_CONFIG[mKey];
-                                        const val = data.metrics[mKey];
-                                        const pct = ((val - mConfig.min) / (mConfig.max - mConfig.min)) * 100;
-                                        return html`
+                if (!config.axes[axis] || mapping[axis] === 'none') return null;
+                const mKey = mapping[axis];
+                const mConfig = METRICS_CONFIG[mKey];
+                const val = data.metrics[mKey];
+                const pct = ((val - mConfig.min) / (mConfig.max - mConfig.min)) * 100;
+                return html`
                                             <div key=${axis} className="bg-slate-50 border-slate-100 p-2 rounded border">
                                                 <div className="flex justify-between text-xs mb-1">
                                                     <span className="text-slate-500">${mConfig.label[lang]} (${axis.toUpperCase()})</span>
-                                                    <span className="font-bold" style=${{color: mConfig.color.light}}>${val}</span>
+                                                    <span className="font-bold" style=${{ color: mConfig.color.light }}>${val}</span>
                                                 </div>
                                                 <div className="w-full h-1.5 rounded-full overflow-hidden bg-slate-200">
                                                     <div className="h-full" style=${{ width: `${pct}%`, backgroundColor: mConfig.color.light }}></div>
                                                 </div>
                                             </div>
                                         `;
-                                    })}
+            })}
                                 </div>
                                 <hr className="my-4 border-slate-100" />
                                 <div className="text-xs font-bold uppercase tracking-wider mb-4 text-slate-500">${UI_TEXT.countryProfile[lang]}</div>
@@ -755,8 +811,8 @@
         function App() {
             const [hovered, setHovered] = useState(null);
             const [view, setView] = useState({ mode: 'default' });
-            const [lang, setLang] = useState('en'); 
-            
+            const [lang, setLang] = useState('en');
+
             const [config, setConfig] = useState({ axes: { x: true, y: true, z: true }, showLabels: true, showIdeologies: false, showFigures: false });
             const [mapping, setMapping] = useState({ x: 'econ', y: 'cult', z: 'auth' });
             const [tourStep, setTourStep] = useState(-1);
@@ -777,9 +833,9 @@
             }, [tourStep, lang]);
 
             const normalize = (val, metricId) => {
-                if(metricId === 'none') return 0;
+                if (metricId === 'none') return 0;
                 const m = METRICS_CONFIG[metricId];
-                if(val === undefined) return 0;
+                if (val === undefined) return 0;
                 return ((val - m.min) / (m.max - m.min)) * 20 - 10;
             };
 
@@ -790,8 +846,8 @@
                         const val = c.metrics?.[key];
                         pos[key] = normalize(val !== undefined ? val : METRICS_CONFIG[key].min, key);
                     });
-                    
-                    const rankGlobal = (pos.econ + 10); 
+
+                    const rankGlobal = (pos.econ + 10);
 
                     return {
                         ...c,
@@ -803,7 +859,7 @@
                     };
                 });
                 return combined;
-            }, []); 
+            }, []);
 
             return html`
                 <div className=${`w-full h-full relative font-sans transition-colors duration-500 ${lang === 'fa' ? 'font-fa' : ''} bg-[#f1f5f9]`}>
@@ -830,4 +886,5 @@
         root.render(html`<${App} />`);
     </script>
 </body>
+
 </html>
